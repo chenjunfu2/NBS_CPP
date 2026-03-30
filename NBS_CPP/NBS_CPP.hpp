@@ -6,6 +6,7 @@
 #include <fstream>
 #include <type_traits>
 #include <filesystem>
+#include <algorithm>
 
 #include "NBS_Endian.hpp"
 
@@ -102,12 +103,12 @@ public:
 	public:
 		SBYTE Get_panning_ActualValue(void)
 		{
-			return (SBYTE)panning - (SBYTE)100;
+			return (SBYTE)((SSHORT)panning - (SSHORT)100);
 		}
 
 		void Set_panning_ActualValue(SBYTE sbNewActualVal)
 		{
-			panning = (BYTE)(sbNewActualVal + (SBYTE)100);
+			panning = (BYTE)((SSHORT)sbNewActualVal + (SSHORT)100);
 		}
 	};
 
@@ -122,12 +123,12 @@ public:
 	public:
 		SBYTE Get_panning_ActualValue(void)
 		{
-			return (SBYTE)panning - (SBYTE)100;
+			return (SBYTE)((SSHORT)panning - (SSHORT)100);
 		}
 
 		void Set_panning_ActualValue(SBYTE sbNewActualVal)
 		{
-			panning = (BYTE)(sbNewActualVal + (SBYTE)100);
+			panning = (BYTE)((SSHORT)sbNewActualVal + (SSHORT)100);
 		}
 	};
 
@@ -291,13 +292,13 @@ do\
 			NBS_File::INT cur_layer = -1;
 			while (true)
 			{
-				NBS_File::SHORT tick{};
-				NORM_READ(tick);
-				if (tick == 0)
+				NBS_File::SHORT layer{};
+				NORM_READ(layer);
+				if (layer == 0)
 				{
 					break;
 				}
-				cur_layer += tick;
+				cur_layer += layer;
 
 				NBS_File::Note note;
 				note.tick = cur_tick;
