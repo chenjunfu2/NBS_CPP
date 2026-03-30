@@ -85,10 +85,7 @@ public:
 
 	struct Layer
 	{
-		//标识信息
 		SHORT id;			//层索引 (0-based)
-
-		//层属性
 		std::string name;	//层名称
 		BOOL lock;			//是否锁定 (v4+)
 		BYTE volume;		//音量 (0-100)
