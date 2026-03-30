@@ -145,6 +145,12 @@
   <ItemGroup>
     <ClCompile Include="NBS_CPP.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="util\CodeTimer.hpp" />
+    <ClInclude Include="util\CPP_Helper.h" />
+    <ClInclude Include="util\Endian_Helper.hpp" />
+    <ClInclude Include="util\MyAssert.hpp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
