@@ -158,8 +158,8 @@ public:
 		{
 			return false;
 		}
-
 		NBS_File::INT u32Length = strData.size();
+
 		if (!WriteToStream<NBS_File::INT>(u32Length, fileStream))
 		{
 			return false;
@@ -356,27 +356,27 @@ do\
 		// 写入歌曲长度标记
 		if (header.version > 0)
 		{
-			NORM_WRITE((NBS_File::SHORT)0);  // 新版本格式标记为0
-			NORM_WRITE((NBS_File::BYTE)version);
+			NORM_WRITE((NBS_File::SHORT)0);//新版本格式标记为0
+			NORM_WRITE(header.version);
+			NORM_WRITE(header.default_instruments);
+			COND_WRITE(header.song_length, header.version >= 3);//如果还大于3，那么存在
 		}
-		else
+		else// header.version == 0
 		{
 			NORM_WRITE(header.song_length);
 		}
 
-		// 写入条件字段
-		COND_WRITE(header.default_instruments, version > 0);
-		COND_WRITE(header.song_length, version >= 3);
+		//写入信息字段
 		NORM_WRITE(header.song_layers);
 
-		// 写入字符串字段
+		//写入字符串字段
 		NORM_WRITE(header.song_name);
 		NORM_WRITE(header.song_author);
 		NORM_WRITE(header.original_author);
 		NORM_WRITE(header.description);
 
-		// 写入数值字段
-		NORM_WRITE((NBS_File::SHORT)(header.tempo));
+		//写入数值字段
+		NORM_WRITE(header.tempo);
 		NORM_WRITE(header.auto_save);
 		NORM_WRITE(header.auto_save_duration);
 		NORM_WRITE(header.time_signature);
@@ -386,13 +386,15 @@ do\
 		NORM_WRITE(header.right_clicks);
 		NORM_WRITE(header.blocks_added);
 		NORM_WRITE(header.blocks_removed);
-
 		NORM_WRITE(header.song_origin);
 
-		// 写入v4及以上字段
-		COND_WRITE(header.loop, version >= 4);
-		COND_WRITE(header.max_loop_count, version >= 4);
-		COND_WRITE(header.loop_start, version >= 4);
+		//写入v4及以上字段
+		if (header.version >= 4)
+		{
+			NORM_WRITE(header.loop);
+			NORM_WRITE(header.max_loop_count);
+			NORM_WRITE(header.loop_start);
+		}
 
 		return true;
 	}
@@ -401,7 +403,40 @@ do\
 
 
 
+	static bool WriteLayers(const NBS_File::Header &header, const NBS_File::ListLayer &listLayer, std::fstream &fileStream)
+	{
+		//写入层
+		for (const auto &layer : listLayer)
+		{
+			NORM_WRITE(layer.name);
+			COND_WRITE(layer.lock, header.version >= 4);
+			NORM_WRITE(layer.volume);
+			COND_WRITE(layer.panning, header.version >= 2);
+		}
 
+		return true;
+	}
+
+	static bool WriteInstruments(const NBS_File::Header &header, const NBS_File::ListInstrument &listInstrument, std::fstream &fileStream)
+	{
+		//写入乐器数量
+		if (listInstrument.size() > UINT8_MAX)
+		{
+			return false;
+		}
+		NORM_WRITE((NBS_File::BYTE)listInstrument.size());
+
+		//写入每个乐器
+		for (const auto &instrument : listInstrument)
+		{
+			NORM_WRITE(instrument.name);
+			NORM_WRITE(instrument.file);
+			NORM_WRITE(instrument.pitch);
+			NORM_WRITE(instrument.press_key);
+		}
+
+		return true;
+	}
 
 #undef FAIL_RETURN
 
