@@ -1,5 +1,4 @@
-﻿#include "NBS_CPP.hpp"
-
+﻿#include <nbs_cpp/NBS_CPP.hpp>
 
 #include <iostream>
 #include <iomanip>

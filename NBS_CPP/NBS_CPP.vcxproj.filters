@@ -16,6 +16,9 @@
     <Filter Include="头文件\util">
       <UniqueIdentifier>{e2bf1ed0-e607-4b9f-883a-798492887e6d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\nbs_cpp">
+      <UniqueIdentifier>{a134413e-12ba-41b3-9418-6dcf1620d1e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util\CPP_Helper.h">
@@ -27,14 +30,14 @@
     <ClInclude Include="util\CodeTimer.hpp">
       <Filter>头文件\util</Filter>
     </ClInclude>
-    <ClInclude Include="NBS_Endian.hpp">
-      <Filter>头文件</Filter>
+    <ClInclude Include="..\include\nbs_cpp\NBS_CPP.hpp">
+      <Filter>头文件\nbs_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nbs_cpp\NBS_Endian.hpp">
+      <Filter>头文件\nbs_cpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NBS_CPP.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
