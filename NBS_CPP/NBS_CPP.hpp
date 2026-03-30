@@ -1,4 +1,6 @@
-﻿#include <stdint.h>
+﻿#pragma once
+
+#include <stdint.h>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -29,6 +31,7 @@ public:
 		std::is_same_v<T, BOOL> ||
 		std::is_same_v<T, STRLEN>;
 
+	//extern type
 	using FLOAT = double;
 	using SBYTE = int8_t;
 
