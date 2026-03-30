@@ -76,7 +76,7 @@ public:
 		SHORT loop_start;				//version >= 4：循环起始位置（tick）
 
 	public:
-		FLOAT Get_tempo_ActualValue(void)
+		FLOAT Get_tempo_ActualValue(void) const
 		{
 			return (FLOAT)tempo / (FLOAT)100.0;
 		}
@@ -101,7 +101,7 @@ public:
 		SSHORT pitch;		//音高微调 (-32768 to 32767, 默认0)
 
 	public:
-		SBYTE Get_panning_ActualValue(void)
+		SBYTE Get_panning_ActualValue(void) const
 		{
 			return (SBYTE)((SSHORT)panning - (SSHORT)100);
 		}
@@ -121,7 +121,7 @@ public:
 		BYTE panning;		//声像 (-100 到 100, 0为中央, 默认100)，使用的时候需-100获得实际值，存储时无符号需要+100
 
 	public:
-		SBYTE Get_panning_ActualValue(void)
+		SBYTE Get_panning_ActualValue(void) const
 		{
 			return (SBYTE)((SSHORT)panning - (SSHORT)100);
 		}
