@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <filesystem>
 
-#include "util/Endian_Helper.hpp"
+#include "NBS_Endian.hpp"
 
 class NBS_File
 {
@@ -241,24 +241,24 @@ do\
 		NBS_File::INT cur_tick = -1;
 		while (true)
 		{
-			NBS_File::SHORT jump{};
-			NORM_READ(jump);
-			if (jump == 0)
+			NBS_File::SHORT tick{};
+			NORM_READ(tick);
+			if (tick == 0)
 			{
 				break;
 			}
-			cur_tick += jump;
+			cur_tick += tick;
 
 			NBS_File::INT cur_layer = -1;
 			while (true)
 			{
-				NBS_File::SHORT jump{};
-				NORM_READ(jump);
-				if (jump == 0)
+				NBS_File::SHORT tick{};
+				NORM_READ(tick);
+				if (tick == 0)
 				{
 					break;
 				}
-				cur_layer += jump;
+				cur_layer += tick;
 
 				NBS_File::Note note;
 				note.tick = cur_tick;
@@ -327,6 +327,11 @@ do\
 	static bool ReadNBSFile(std::filesystem::path path, NBS_File &fileNBS)
 	{
 		std::fstream fRead(path, std::ios_base::in | std::ios_base::binary);
+		if (!fRead.is_open())
+		{
+			return false;
+		}
+
 		return
 			ReadHeader(fileNBS.header, fRead) &&
 			ReadNotes(fileNBS.header, fileNBS.listNote, fRead) &&
@@ -400,8 +405,63 @@ do\
 	}
 
 
+	static bool WriteNotes(const NBS_File::Header &header, const NBS_File::ListNote &listNote, std::fstream &fileStream)
+	{
+		// 按tick排序音符，同tick按照layer排序
+		std::vector<NBS_File::Note> sortedNoteList = listNote;
+		size_t szSortedNoteSize = sortedNoteList.size();
+		std::sort(sortedNoteList.begin(), sortedNoteList.end(),
+			[](const NBS_File::Note &a, const NBS_File::Note &b)
+			{
+				return a.tick != b.tick ? a.tick < b.tick : a.layer < b.layer;
+			}
+		);
+		
+		//遍历tick
+		size_t noteIndex = 0;
+		NBS_File::INT cur_tick = -1;
+		while (noteIndex < szSortedNoteSize)
+		{
+			//获取当前音符的tick
+			NBS_File::INT tick = sortedNoteList[noteIndex].tick;
 
+			//写入tick偏移
+			NORM_WRITE((NBS_File::SHORT)(tick - cur_tick));
+			cur_tick = tick;
 
+			//写入当前tick的所有音符作为一个layer层
+			NBS_File::INT cur_layer = -1;
+			do
+			{
+				const auto &note = sortedNoteList[noteIndex];
+
+				//写入layer偏移
+				NORM_WRITE((NBS_File::SHORT)(note.layer - cur_layer));
+				cur_layer = note.layer;
+
+				//写入音符数据
+				NORM_WRITE(note.instrument);
+				NORM_WRITE(note.key);
+
+				//v4数据
+				if (header.version >= 4)
+				{
+					NORM_WRITE(note.velocity);
+					NORM_WRITE(note.panning);
+					NORM_WRITE(note.pitch);
+				}
+
+				++noteIndex;
+			} while (noteIndex < szSortedNoteSize && sortedNoteList[noteIndex].tick == tick);//第一次肯定不会失败，使用do while
+
+			//写入layer结束标记
+			NORM_WRITE((NBS_File::SHORT)0);
+		}
+		//写入tick结束标记
+		NORM_WRITE((NBS_File::SHORT)0);
+
+		return true;
+	}
 
 	static bool WriteLayers(const NBS_File::Header &header, const NBS_File::ListLayer &listLayer, std::fstream &fileStream)
 	{
@@ -438,30 +498,25 @@ do\
 		return true;
 	}
 
+	static bool WriteNBSFile(std::filesystem::path path, const NBS_File &fileNBS)
+	{
+		std::fstream fWrite(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+		if (!fWrite.is_open())
+		{
+			return false;
+		}
+
+		return
+			WriteHeader(fileNBS.header, fWrite) &&
+			WriteNotes(fileNBS.header, fileNBS.listNote, fWrite) &&
+			WriteLayers(fileNBS.header, fileNBS.listLayer, fWrite) &&
+			WriteInstruments(fileNBS.header, fileNBS.listInstrument, fWrite);
+	}
+
+#undef NORM_WRITE
+#undef COND_WRITE
+
+public:
 #undef FAIL_RETURN
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

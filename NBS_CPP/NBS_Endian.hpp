@@ -6,26 +6,26 @@
 #include <utility>//std::index_sequence
 #include <type_traits>//std::make_unsigned_t
 
+//先预定义所有可能的编译器宏
+#define CJF2_NBS_CPP_COMPILER_MSVC 0
+#define CJF2_NBS_CPP_COMPILER_GCC 0
+#define CJF2_NBS_CPP_COMPILER_CLANG 0
+
+//后实际判断是哪个编译器，是就替换它自己的宏为1
 #if defined(_MSC_VER)
-#define COMPILER_MSVC 1
-#define COMPILER_GCC 0
-#define COMPILER_CLANG 0
-#define COMPILER_NAME "MSVC"
-#elif defined(__clang__)
-#define COMPILER_MSVC 0
-#define COMPILER_GCC 0
-#define COMPILER_CLANG 1
-#define COMPILER_NAME "Clang"
+#undef  CJF2_NBS_CPP_COMPILER_MSVC
+#define CJF2_NBS_CPP_COMPILER_MSVC 1
+#define CJF2_NBS_CPP_COMPILER_NAME "MSVC"
 #elif defined(__GNUC__)
-#define COMPILER_MSVC 0
-#define COMPILER_GCC 1
-#define COMPILER_CLANG 0
-#define COMPILER_NAME "GCC"
+#undef  CJF2_NBS_CPP_COMPILER_GCC
+#define CJF2_NBS_CPP_COMPILER_GCC 1
+#define CJF2_NBS_CPP_COMPILER_NAME "GCC"
+#elif defined(__clang__)
+#undef  CJF2_NBS_CPP_COMPILER_CLANG
+#define CJF2_NBS_CPP_COMPILER_CLANG 1
+#define CJF2_NBS_CPP_COMPILER_NAME "Clang"
 #else
-#define COMPILER_MSVC 0
-#define COMPILER_GCC 0
-#define COMPILER_CLANG 0
-#define COMPILER_NAME "Unknown"
+#define CJF2_NBS_CPP_COMPILER_NAME "Unknown"
 #endif
 
 class Endian_Helper
@@ -88,9 +88,9 @@ public:
 	static uint16_t ByteSwap16(uint16_t data) noexcept
 	{
 		//根据编译器切换内建指令或使用默认位移实现
-#if COMPILER_MSVC
+#if CJF2_NBS_CPP_COMPILER_MSVC
 		return _byteswap_ushort(data);
-#elif COMPILER_GCC || COMPILER_CLANG
+#elif CJF2_NBS_CPP_COMPILER_GCC || CJF2_NBS_CPP_COMPILER_CLANG
 		return __builtin_bswap16(data);
 #else
 		return ByteSwapAny(data);
@@ -100,9 +100,9 @@ public:
 	static uint32_t ByteSwap32(uint32_t data) noexcept
 	{
 		//根据编译器切换内建指令或使用默认位移实现
-#if COMPILER_MSVC
+#if CJF2_NBS_CPP_COMPILER_MSVC
 		return _byteswap_ulong(data);
-#elif COMPILER_GCC || COMPILER_CLANG
+#elif CJF2_NBS_CPP_COMPILER_GCC || CJF2_NBS_CPP_COMPILER_CLANG
 		return __builtin_bswap32(data);
 #else
 		return ByteSwapAny(data);
@@ -112,9 +112,9 @@ public:
 	static uint64_t ByteSwap64(uint64_t data) noexcept
 	{
 		//根据编译器切换内建指令或使用默认位移实现
-#if COMPILER_MSVC
+#if CJF2_NBS_CPP_COMPILER_MSVC
 		return _byteswap_uint64(data);
-#elif COMPILER_GCC || COMPILER_CLANG
+#elif CJF2_NBS_CPP_COMPILER_GCC || CJF2_NBS_CPP_COMPILER_CLANG
 		return __builtin_bswap64(data);
 #else
 		return ByteSwapAny(data);

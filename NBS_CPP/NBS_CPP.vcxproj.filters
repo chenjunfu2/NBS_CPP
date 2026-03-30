@@ -18,15 +18,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NBS_CPP.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="util\CPP_Helper.h">
-      <Filter>头文件\util</Filter>
-    </ClInclude>
-    <ClInclude Include="util\Endian_Helper.hpp">
       <Filter>头文件\util</Filter>
     </ClInclude>
     <ClInclude Include="util\MyAssert.hpp">
@@ -35,5 +27,16 @@
     <ClInclude Include="util\CodeTimer.hpp">
       <Filter>头文件\util</Filter>
     </ClInclude>
+    <ClInclude Include="NBS_Endian.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="NBS_CPP.hpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

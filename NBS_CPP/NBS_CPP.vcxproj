@@ -143,12 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="NBS_CPP.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="NBS_CPP.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="NBS_Endian.hpp" />
     <ClInclude Include="util\CodeTimer.hpp" />
     <ClInclude Include="util\CPP_Helper.h" />
-    <ClInclude Include="util\Endian_Helper.hpp" />
     <ClInclude Include="util\MyAssert.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
