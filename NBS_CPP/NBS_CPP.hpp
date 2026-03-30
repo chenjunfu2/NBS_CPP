@@ -198,7 +198,7 @@ public:
 		{
 			return false;
 		}
-		NBS_File::INT u32Length = strData.size();
+		NBS_File::INT u32Length = (NBS_File::INT)strData.size();
 
 		if (!WriteToStream<NBS_File::INT>(u32Length, fileStream))
 		{
