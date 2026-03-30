@@ -29,6 +29,9 @@ public:
 		std::is_same_v<T, BOOL> ||
 		std::is_same_v<T, STRLEN>;
 
+	using FLOAT = double;
+	using SBYTE = int8_t;
+
 public:
 	//备注，所有string都以cp1252编码
 	struct Header
@@ -67,6 +70,17 @@ public:
 		BOOL loop;						//version >= 4：是否启用循环播放
 		BYTE max_loop_count;			//version >= 4：最大循环次数（0表示无限循环）
 		SHORT loop_start;				//version >= 4：循环起始位置（tick）
+
+	public:
+		FLOAT Get_tempo_ActualValue(void)
+		{
+			return (FLOAT)tempo / (FLOAT)100.0;
+		}
+
+		void Set_tempo_ActualValue(FLOAT dNewActualVal)
+		{
+			tempo = (SHORT)(dNewActualVal * (FLOAT)100.0);
+		}
 	};
 
 	struct Note
@@ -81,6 +95,17 @@ public:
 		BYTE velocity;		//力度 (0-100, 默认100)
 		BYTE panning;		//声像 (0-200, 0为最左, 200为最右, 100为中央, 默认100)，使用的时候需-100获得实际值，存储时无符号需要+100
 		SSHORT pitch;		//音高微调 (-32768 to 32767, 默认0)
+
+	public:
+		SBYTE Get_panning_ActualValue(void)
+		{
+			return (SBYTE)panning - (SBYTE)100;
+		}
+
+		void Set_panning_ActualValue(SBYTE sbNewActualVal)
+		{
+			panning = (BYTE)(sbNewActualVal + (SBYTE)100);
+		}
 	};
 
 	struct Layer
@@ -90,6 +115,17 @@ public:
 		BOOL lock;			//是否锁定 (v4+)
 		BYTE volume;		//音量 (0-100)
 		BYTE panning;		//声像 (-100 到 100, 0为中央, 默认100)，使用的时候需-100获得实际值，存储时无符号需要+100
+
+	public:
+		SBYTE Get_panning_ActualValue(void)
+		{
+			return (SBYTE)panning - (SBYTE)100;
+		}
+
+		void Set_panning_ActualValue(SBYTE sbNewActualVal)
+		{
+			panning = (BYTE)(sbNewActualVal + (SBYTE)100);
+		}
 	};
 
 	struct Instrument
