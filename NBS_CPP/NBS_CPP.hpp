@@ -123,7 +123,7 @@ public:
 		static bool ReadFromStream(T &tData, std::fstream &fileStream)
 	{
 		T tTmp{};
-		if (!fileStream.read((char *)tTmp, sizeof(T)))
+		if (!fileStream.read((char *)&tTmp, sizeof(T)))
 		{
 			return false;
 		}
@@ -300,25 +300,19 @@ do\
 	{
 		listInstrument.clear();
 
-		while (true)
+		NBS_File::BYTE u8InstrumentCount{};
+		NORM_READ(u8InstrumentCount);
+
+		for (NBS_File::BYTE i = 0; i < u8InstrumentCount; ++i)
 		{
-			NBS_File::BYTE u8InsCount{};
-			if (!ReadFromStream(u8InsCount, fileStream))
-			{
-				return fileStream.eof();
-			}
+			NBS_File::Instrument instrument;
+			instrument.id = i;
+			NORM_READ(instrument.name);
+			NORM_READ(instrument.file);
+			NORM_READ(instrument.pitch);
+			NORM_READ(instrument.press_key);
 
-			for (NBS_File::BYTE i = 0; i < u8InsCount; ++i)
-			{
-				NBS_File::Instrument instrument;
-				instrument.id = i;
-				NORM_READ(instrument.name);
-				NORM_READ(instrument.file);
-				NORM_READ(instrument.pitch);
-				NORM_READ(instrument.press_key);
-
-				listInstrument.push_back(std::move(instrument));
-			}
+			listInstrument.push_back(std::move(instrument));
 		}
 
 		return true;
