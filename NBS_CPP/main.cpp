@@ -129,6 +129,8 @@ int main(int argc, char *argv[])
     PrintLayersInfo(nbsFile.listLayer);
     PrintInstrumentsInfo(nbsFile.listInstrument);
 
+    return 0;
+
     // 构造输出文件路径
     std::filesystem::path outputPath = inputPath;
     std::string stem = outputPath.stem().string();
