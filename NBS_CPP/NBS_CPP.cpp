@@ -1,16 +1,14 @@
 ﻿#include <stdint.h>
 #include <string>
+#include <vector>
 #include <fstream>
 #include <type_traits>
+#include <filesystem>
 
 #include "util/Endian_Helper.hpp"
-#include <vector>
 
-class NBT_DataType
+class NBS_File
 {
-	NBT_DataType(void) = delete;
-	~NBT_DataType(void) = delete;
-
 public:
 	using BYTE = uint8_t;
 	using SHORT = uint16_t;
@@ -30,72 +28,45 @@ public:
 		std::is_same_v<T, INT> ||
 		std::is_same_v<T, BOOL> ||
 		std::is_same_v<T, STRLEN>;
-public:
-	template<typename T>
-	requires(IsNumeric_Type<T>)
-	static bool ReadFromStream(T& tData, std::fstream &fileStream)
-	{
-		T tTmp{};
-		if (!fileStream.read((char *)tTmp, sizeof(T)))
-		{
-			return false;
-		}
-
-		tData = Endian_Helper::LittleToNativeAny(tTmp);
-		return true;
-	}
-
-	static bool ReadFromStream(std::string &strData, std::fstream &fileStream)
-	{
-		INT u32Length = 0;
-		if (!ReadFromStream<INT>(u32Length, fileStream))
-		{
-			return false;
-		}
-
-		strData.resize(u32Length);
-		return (bool)fileStream.read(strData.data(), u32Length * sizeof(*strData.data()));
-	}
-
 
 public:
 	//备注，所有string都以cp1252编码
 	struct Header
 	{
 		//版本信息
-		INT version;
+		INT version;					//NBS文件版本号（0-5，当前最新为5），决定后续字段的可用性
 
 		//基础设置
-		BYTE default_instruments;//version > 0
-		SHORT song_length;//version >= 3
-		SHORT song_layers;
+		BYTE default_instruments;		//version > 0：默认乐器数量（通常为16），仅在版本1及以上有效
+		SHORT song_length;				//version >= 3：歌曲总长度（最大tick值），仅在版本3及以上有效
+		SHORT song_layers;				//歌曲总层数
 
 		//歌曲元数据
-		std::string song_name;
-		std::string song_author;
-		std::string original_author;
-		std::string description;
+		std::string song_name;			//歌曲名称
+		std::string song_author;		//歌曲作者
+		std::string original_author;	//原曲作者（改编时使用）
+		std::string description;		//歌曲描述/备注
 
 		//播放设置
-		SHORT tempo;//存储为整数，读取后float ftempo = tempo/100.0，存储时tempo = (SHORT)(ftempo*100.0)
-		BOOL auto_save;
-		BYTE auto_save_duration;
-		BYTE time_signature;
+		SHORT tempo;					//速度值，存储为整数，实际速度 = tempo / 100.0，默认1000对应10.0，读取后float ftempo = tempo/100.0，存储时tempo = (SHORT)(ftempo*100.0)
+		BOOL auto_save;					//是否开启自动保存
+		BYTE auto_save_duration;		//自动保存间隔（分钟）
+		BYTE time_signature;			//拍号分母（如4表示4/4拍）
 
 		//统计信息
-		INT minutes_spent;
-		INT left_clicks;
-		INT right_clicks;
-		INT blocks_added;
-		INT blocks_removed;
+		INT minutes_spent;				//编辑总耗时（分钟）
+		INT left_clicks;				//鼠标左键点击次数（用于统计）
+		INT right_clicks;				//鼠标右键点击次数（用于统计）
+		INT blocks_added;				//添加的方块总数
+		INT blocks_removed;				//移除的方块总数
 
 		//来源信息
-		std::string song_origin;
+		std::string song_origin;		//歌曲来源标识（如"Noteblock Studio"等）
 
 		//循环设置
-		BOOL loop;//version >= 4
-		BYTE max_loop_count;//version >= 4
-		SHORT loop_start;//version >= 4
+		BOOL loop;						//version >= 4：是否启用循环播放
+		BYTE max_loop_count;			//version >= 4：最大循环次数（0表示无限循环）
+		SHORT loop_start;				//version >= 4：循环起始位置（tick）
 	};
 
 	struct Note
@@ -133,6 +104,49 @@ public:
 		BOOL press_key;		//是否按下按键（默认true）
 	};
 
+	using ListNote = std::vector<Note>;
+	using ListLayer = std::vector<Layer>;
+	using ListInstrument = std::vector<Instrument>;
+
+public:
+	Header header;
+	ListNote listNote;
+	ListLayer listLayer;
+	ListInstrument listInstrument;
+};
+
+class NBS_IO
+{
+	NBS_IO(void) = delete;
+	~NBS_IO(void) = delete;
+
+public:
+	template<typename T>
+	requires(NBS_File::IsNumeric_Type<T>)
+		static bool ReadFromStream(T &tData, std::fstream &fileStream)
+	{
+		T tTmp{};
+		if (!fileStream.read((char *)tTmp, sizeof(T)))
+		{
+			return false;
+		}
+
+		tData = Endian_Helper::LittleToNativeAny(tTmp);
+		return true;
+	}
+
+	static bool ReadFromStream(std::string &strData, std::fstream &fileStream)
+	{
+		NBS_File::INT u32Length = 0;
+		if (!ReadFromStream<NBS_File::INT>(u32Length, fileStream))
+		{
+			return false;
+		}
+
+		strData.resize(u32Length);
+		return (bool)fileStream.read(strData.data(), u32Length * sizeof(*strData.data()));
+	}
+
 public:
 #define FAIL_RETURN(func)\
 do\
@@ -160,13 +174,13 @@ do\
 FAIL_RETURN(ReadFromStream((field), fileStream));
 
 
-	static bool ReadHeader(Header &header, std::fstream &fileStream)
+	static bool ReadHeader(NBS_File::Header &header, std::fstream &fileStream)
 	{
-		SHORT song_length{};
+		NBS_File::SHORT song_length{};
 		NORM_READ(song_length);
 
-		INT version{};
-		COND_READ(version, song_length == 0, (INT)0);//读入版本号，如果是新版本，则song_length长度为标记值0
+		NBS_File::INT version{};
+		COND_READ(version, song_length == 0, (NBS_File::INT)0);//读入版本号，如果是新版本，则song_length长度为标记值0
 
 		//初始化文件头
 		header.version = version;
@@ -193,21 +207,21 @@ FAIL_RETURN(ReadFromStream((field), fileStream));
 
 		NORM_READ(header.song_origin);
 
-		COND_READ(header.loop, version >= 4, (BOOL)false);
-		COND_READ(header.max_loop_count, version >= 4, (BYTE)0);
-		COND_READ(header.loop_start, version >= 4, (SHORT)0);
+		COND_READ(header.loop, version >= 4, (NBS_File::BOOL)false);
+		COND_READ(header.max_loop_count, version >= 4, (NBS_File::BYTE)0);
+		COND_READ(header.loop_start, version >= 4, (NBS_File::SHORT)0);
 	
 		return true;
 	}
 
-	static bool ReadNotes(const Header &header, std::vector<Note> &listNote, std::fstream &fileStream)
+	static bool ReadNotes(const NBS_File::Header &header, NBS_File::ListNote &listNote, std::fstream &fileStream)
 	{
 		listNote.clear();
 
-		INT cur_tick = -1;
+		NBS_File::INT cur_tick = -1;
 		while (true)
 		{
-			SHORT jump{};
+			NBS_File::SHORT jump{};
 			NORM_READ(jump);
 			if (jump == 0)
 			{
@@ -215,10 +229,10 @@ FAIL_RETURN(ReadFromStream((field), fileStream));
 			}
 			cur_tick += jump;
 
-			INT cur_layer = -1;
+			NBS_File::INT cur_layer = -1;
 			while (true)
 			{
-				SHORT jump{};
+				NBS_File::SHORT jump{};
 				NORM_READ(jump);
 				if (jump == 0)
 				{
@@ -226,14 +240,14 @@ FAIL_RETURN(ReadFromStream((field), fileStream));
 				}
 				cur_layer += jump;
 
-				Note note;
+				NBS_File::Note note;
 				note.tick = cur_tick;
 				note.layer = cur_layer;
 				NORM_READ(note.instrument);
 				NORM_READ(note.key);
-				COND_READ(note.velocity, header.version >= 4, (BYTE)100);
-				COND_READ(note.panning, header.version >= 4, (BYTE)0);
-				COND_READ(note.pitch, header.version >= 4, (SSHORT)0);
+				COND_READ(note.velocity, header.version >= 4, (NBS_File::BYTE)100);
+				COND_READ(note.panning, header.version >= 4, (NBS_File::BYTE)0);
+				COND_READ(note.pitch, header.version >= 4, (NBS_File::SSHORT)0);
 
 				listNote.push_back(std::move(note));
 			}
@@ -242,19 +256,19 @@ FAIL_RETURN(ReadFromStream((field), fileStream));
 		return true;
 	}
 
-	static bool ReadLayers(const Header &header, std::vector<Layer> &listLayer, std::fstream &fileStream)
+	static bool ReadLayers(const NBS_File::Header &header, NBS_File::ListLayer &listLayer, std::fstream &fileStream)
 	{
 		listLayer.clear();
 		listLayer.reserve(header.song_layers);
 
-		for (SHORT i = 0; i < header.song_layers; ++i)
+		for (NBS_File::SHORT i = 0; i < header.song_layers; ++i)
 		{
-			Layer layer;
+			NBS_File::Layer layer;
 			layer.id = i;
 			NORM_READ(layer.name);
-			COND_READ(layer.lock, header.version >= 4, (BOOL)false);
+			COND_READ(layer.lock, header.version >= 4, (NBS_File::BOOL)false);
 			NORM_READ(layer.volume);
-			COND_READ(layer.panning, header.version >= 2, (BYTE)0);
+			COND_READ(layer.panning, header.version >= 2, (NBS_File::BYTE)0);
 
 			listLayer.push_back(std::move(layer));
 		}
@@ -262,17 +276,43 @@ FAIL_RETURN(ReadFromStream((field), fileStream));
 		return true;
 	}
 
-	static bool ReadInstruments(const Header &header, std::vector<Instruments> &listInstruments, std::fstream &fileStream)
+	static bool ReadInstruments(const NBS_File::Header &header, NBS_File::ListInstrument &listInstrument, std::fstream &fileStream)
 	{
-		listInstruments.clear();
+		listInstrument.clear();
 
+		while (true)
+		{
+			NBS_File::BYTE u8InsCount{};
+			if (!ReadFromStream(u8InsCount, fileStream))
+			{
+				return fileStream.eof();
+			}
+
+			for (NBS_File::BYTE i = 0; i < u8InsCount; ++i)
+			{
+				NBS_File::Instrument instrument;
+				instrument.id = i;
+				NORM_READ(instrument.name);
+				NORM_READ(instrument.file);
+				NORM_READ(instrument.pitch);
+				NORM_READ(instrument.press_key);
+
+				listInstrument.push_back(std::move(instrument));
+			}
+		}
 
 		return true;
 	}
 
-
-
-
+	static bool ReadNBSFile(std::filesystem::path path, NBS_File &fileNBS)
+	{
+		std::fstream fRead(path, std::ios_base::in | std::ios_base::binary);
+		return
+			ReadHeader(fileNBS.header, fRead) &&
+			ReadNotes(fileNBS.header, fileNBS.listNote, fRead) &&
+			ReadLayers(fileNBS.header, fileNBS.listLayer, fRead) &&
+			ReadInstruments(fileNBS.header, fileNBS.listInstrument, fRead);
+	}
 };
 
 
