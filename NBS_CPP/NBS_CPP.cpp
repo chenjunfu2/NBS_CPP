@@ -34,7 +34,7 @@ public:
 	struct Header
 	{
 		//版本信息
-		INT version;					//NBS文件版本号（0-5，当前最新为5），决定后续字段的可用性
+		BYTE version;					//NBS文件版本号（0-5，当前最新为5），决定后续字段的可用性
 
 		//基础设置
 		BYTE default_instruments;		//version > 0：默认乐器数量（通常为16），仅在版本1及以上有效
@@ -139,12 +139,35 @@ public:
 		{
 			return false;
 		}
-
 		strData.resize(u32Length);
+
 		return (bool)fileStream.read(strData.data(), u32Length * sizeof(*strData.data()));
 	}
 
-public:
+	template<typename T>
+	requires(NBS_File::IsNumeric_Type<T>)
+	static bool WriteToStream(const T &tData, std::fstream &fileStream)
+	{
+		T tTmp = Endian_Helper::NativeToLittleAny(tData);
+		return (bool)fileStream.write((char *)&tTmp, sizeof(T));
+	}
+
+	static bool WriteToStream(const std::string &strData, std::fstream &fileStream)
+	{
+		if (strData.size() > UINT32_MAX)
+		{
+			return false;
+		}
+
+		NBS_File::INT u32Length = strData.size();
+		if (!WriteToStream<NBS_File::INT>(u32Length, fileStream))
+		{
+			return false;
+		}
+
+		return (bool)fileStream.write(strData.data(), u32Length * sizeof(*strData.data()));
+	}
+
 #define FAIL_RETURN(func)\
 do\
 {\
@@ -153,6 +176,10 @@ do\
 		return false;\
 	}\
 }while(false)
+
+public://READ
+#define NORM_READ(field)\
+FAIL_RETURN(ReadFromStream((field), fileStream))
 
 #define COND_READ(field,cond,defval)\
 do\
@@ -167,17 +194,13 @@ do\
 	}\
 }while(false)
 
-#define NORM_READ(field)\
-FAIL_RETURN(ReadFromStream((field), fileStream));
-
-
 	static bool ReadHeader(NBS_File::Header &header, std::fstream &fileStream)
 	{
 		NBS_File::SHORT song_length{};
 		NORM_READ(song_length);
 
-		NBS_File::INT version{};
-		COND_READ(version, song_length == 0, (NBS_File::INT)0);//读入版本号，如果是新版本，则song_length长度为标记值0
+		NBS_File::BYTE version{};
+		COND_READ(version, song_length == 0, (NBS_File::BYTE)0);//读入版本号，如果是新版本，则song_length长度为标记值0
 
 		//初始化文件头
 		header.version = version;
@@ -310,6 +333,78 @@ FAIL_RETURN(ReadFromStream((field), fileStream));
 			ReadLayers(fileNBS.header, fileNBS.listLayer, fRead) &&
 			ReadInstruments(fileNBS.header, fileNBS.listInstrument, fRead);
 	}
+
+#undef NORM_READ
+#undef COND_READ
+
+
+public://WRITE
+#define NORM_WRITE(field)\
+FAIL_RETURN(WriteToStream((field), fileStream))
+
+#define COND_WRITE(field,cond)\
+do\
+{\
+	if((cond))\
+	{\
+		FAIL_RETURN(WriteToStream((field), fileStream));\
+	}\
+}while(false)
+
+	static bool WriteHeader(const NBS_File::Header &header, std::fstream &fileStream)
+	{
+		// 写入歌曲长度标记
+		if (header.version > 0)
+		{
+			NORM_WRITE((NBS_File::SHORT)0);  // 新版本格式标记为0
+			NORM_WRITE((NBS_File::BYTE)version);
+		}
+		else
+		{
+			NORM_WRITE(header.song_length);
+		}
+
+		// 写入条件字段
+		COND_WRITE(header.default_instruments, version > 0);
+		COND_WRITE(header.song_length, version >= 3);
+		NORM_WRITE(header.song_layers);
+
+		// 写入字符串字段
+		NORM_WRITE(header.song_name);
+		NORM_WRITE(header.song_author);
+		NORM_WRITE(header.original_author);
+		NORM_WRITE(header.description);
+
+		// 写入数值字段
+		NORM_WRITE((NBS_File::SHORT)(header.tempo));
+		NORM_WRITE(header.auto_save);
+		NORM_WRITE(header.auto_save_duration);
+		NORM_WRITE(header.time_signature);
+
+		NORM_WRITE(header.minutes_spent);
+		NORM_WRITE(header.left_clicks);
+		NORM_WRITE(header.right_clicks);
+		NORM_WRITE(header.blocks_added);
+		NORM_WRITE(header.blocks_removed);
+
+		NORM_WRITE(header.song_origin);
+
+		// 写入v4及以上字段
+		COND_WRITE(header.loop, version >= 4);
+		COND_WRITE(header.max_loop_count, version >= 4);
+		COND_WRITE(header.loop_start, version >= 4);
+
+		return true;
+	}
+
+
+
+
+
+
+
+#undef FAIL_RETURN
+
 };
 
 
