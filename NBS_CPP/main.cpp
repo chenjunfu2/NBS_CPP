@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 	NBS_File nbsFile;
 	print("Reading file: {}\n", inputPath.string());
 
-	if (!NBS_IO::ReadNBS(nbsFile, inputPath))
+	if (!NBS_IO::ReadNBSFromFile(nbsFile, inputPath))
 	{
 		print("Error: Failed to read NBS file!\n");
 		return 1;
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 	print("\nWriting file to: {}\n", outputPath.string());
 
 	// 写回 NBS 文件
-	if (!NBS_IO::WriteNBS(nbsFile, outputPath))
+	if (!NBS_IO::WriteNBSToFile(nbsFile, outputPath))
 	{
 		print("Error: Failed to write NBS file!\n");
 		return 1;
