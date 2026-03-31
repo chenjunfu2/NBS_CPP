@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <filesystem>
 #include <algorithm>
+#include <concepts>
+#include <type_traits>
 
 #include "NBS_Endian.hpp"
 
@@ -152,60 +154,164 @@ public:
 	ListInstrument listInstrument;
 };
 
+namespace NBS_IO_Helper
+{
+	template<typename T>
+	concept InputStreamLike = requires(T & t, void *pData, size_t szSize)
+	{
+		{
+			t.HasValidData(szSize)
+		} -> std::same_as<bool>;
+		{
+			t.GetRange(pData, szSize)
+		} -> std::same_as<bool>;
+	};
+
+	// 判断是否像 OutputStream 接口的 concept
+	template<typename T>
+	concept OutputStreamLike = requires(T & t, const void *pData, size_t szSize)
+	{
+		{
+			t.AddReserve(szSize)
+		} -> std::same_as<bool>;
+		{
+			t.PutRange(pData, szSize)
+		} -> std::same_as<bool>;
+	};
+}
+
 class NBS_IO
 {
 	NBS_IO(void) = delete;
 	~NBS_IO(void) = delete;
 
 public:
-	template<typename T>
+	class InputStream
+	{
+	private:
+		std::fstream &refStream;
+
+	public:
+		InputStream(const InputStream &) = delete;
+		InputStream(InputStream &&) noexcept = delete;
+		InputStream &operator=(const InputStream &) = delete;
+		InputStream &operator=(InputStream &&) noexcept = delete;
+		
+		InputStream(std::fstream &stream) : refStream(stream)
+		{}
+		~InputStream(void) = default;
+
+		bool HasValidData(size_t szSize)
+		{
+			return true;
+		}
+
+		bool GetRange(void *pData, size_t szSize)
+		{
+			return !refStream.read((char *)pData, szSize).fail();
+		}
+	};
+
+	class OutputStream
+	{
+	private:
+		std::fstream &refStream;
+
+	public:
+		OutputStream(const OutputStream &) = delete;
+		OutputStream(OutputStream &&) noexcept = delete;
+		OutputStream &operator=(const OutputStream &) = delete;
+		OutputStream &operator=(OutputStream &&) noexcept = delete;
+
+		OutputStream(std::fstream &stream) : refStream(stream)
+		{}
+		~OutputStream(void) = default;
+
+		bool AddReserve(size_t szAddSize)
+		{
+			return true;
+		}
+
+		bool PutRange(const void *pData, size_t szSize)
+		{
+			return !refStream.write((const char *)pData, szSize).fail();
+		}
+	};
+
+public:
+	template<typename T, typename Stream>
 	requires(NBS_File::IsNumeric_Type<T>)
-		static bool ReadFromStream(T &tData, std::fstream &fileStream)
+		static bool ReadFromStream(T &tData, Stream &tStream)
 	{
 		T tTmp{};
-		if (!fileStream.read((char *)&tTmp, sizeof(T)))
+		if (!tStream.HasValidData(sizeof(tTmp))||
+			!tStream.GetRange((void *)&tTmp, sizeof(tTmp)))
 		{
 			return false;
 		}
 
 		tData = Endian_Helper::LittleToNativeAny(tTmp);
+
 		return true;
 	}
 
-	static bool ReadFromStream(std::string &strData, std::fstream &fileStream)
+	template<typename Stream>
+	static bool ReadFromStream(std::string &strData, Stream &tStream)
 	{
-		NBS_File::INT u32Length = 0;
-		if (!ReadFromStream<NBS_File::INT>(u32Length, fileStream))
+		NBS_File::INT u32Length{};
+		if (!ReadFromStream<NBS_File::INT>(u32Length, tStream))
 		{
 			return false;
 		}
-		strData.resize(u32Length);
 
-		return (bool)fileStream.read(strData.data(), u32Length * sizeof(*strData.data()));
+		strData.resize(u32Length);
+		size_t szReadSize = u32Length * sizeof(*strData.data());
+
+		if (!tStream.HasValidData(szReadSize) ||
+			!tStream.GetRange((void *)strData.data(), szReadSize))
+		{
+			return false;
+		}
+
+		return true;
 	}
 
-	template<typename T>
+	template<typename T, typename Stream>
 	requires(NBS_File::IsNumeric_Type<T>)
-	static bool WriteToStream(const T &tData, std::fstream &fileStream)
+	static bool WriteToStream(const T &tData, Stream &tStream)
 	{
 		T tTmp = Endian_Helper::NativeToLittleAny(tData);
-		return (bool)fileStream.write((char *)&tTmp, sizeof(T));
+
+		if (!tStream.AddReserve(sizeof(tTmp)) ||
+			!tStream.PutRange((char *)&tTmp, sizeof(T)))
+		{
+			return false;
+		}
+		
+		return true;
 	}
 
-	static bool WriteToStream(const std::string &strData, std::fstream &fileStream)
+	template<typename Stream>
+	static bool WriteToStream(const std::string &strData, Stream &tStream)
 	{
-		if (strData.size() > UINT32_MAX)
-		{
-			return false;
-		}
-		NBS_File::INT u32Length = (NBS_File::INT)strData.size();
-
-		if (!WriteToStream<NBS_File::INT>(u32Length, fileStream))
+		if (strData.size() * sizeof(*strData.data()) > UINT32_MAX)
 		{
 			return false;
 		}
 
-		return (bool)fileStream.write(strData.data(), u32Length * sizeof(*strData.data()));
+		NBS_File::INT u32Length = (NBS_File::INT)strData.size() * sizeof(*strData.data());
+		if (!WriteToStream<NBS_File::INT>(u32Length, tStream))
+		{
+			return false;
+		}
+
+		if (!tStream.AddReserve(u32Length) ||
+			tStream.PutRange(strData.data(), u32Length * sizeof(*strData.data())))
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 #define FAIL_RETURN(func)\
@@ -219,14 +325,14 @@ do\
 
 public://READ
 #define NORM_READ(field)\
-FAIL_RETURN(ReadFromStream((field), fileStream))
+FAIL_RETURN(ReadFromStream((field), tStream))
 
 #define COND_READ(field,cond,defval)\
 do\
 {\
 	if((cond))\
 	{\
-		FAIL_RETURN(ReadFromStream((field), fileStream));\
+		FAIL_RETURN(ReadFromStream((field), tStream));\
 	}\
 	else\
 	{\
@@ -234,7 +340,8 @@ do\
 	}\
 }while(false)
 
-	static bool ReadHeader(NBS_File::Header &header, std::fstream &fileStream)
+	template<typename Stream>
+	static bool ReadHeader(NBS_File::Header &header, Stream &tStream)
 	{
 		NBS_File::SHORT song_length{};
 		NORM_READ(song_length);
@@ -274,7 +381,8 @@ do\
 		return true;
 	}
 
-	static bool ReadNotes(const NBS_File::Header &header, NBS_File::ListNote &listNote, std::fstream &fileStream)
+	template<typename Stream>
+	static bool ReadNotes(const NBS_File::Header &header, NBS_File::ListNote &listNote, Stream &tStream)
 	{
 		listNote.clear();
 
@@ -316,7 +424,8 @@ do\
 		return true;
 	}
 
-	static bool ReadLayers(const NBS_File::Header &header, NBS_File::ListLayer &listLayer, std::fstream &fileStream)
+	template<typename Stream>
+	static bool ReadLayers(const NBS_File::Header &header, NBS_File::ListLayer &listLayer, Stream &tStream)
 	{
 		listLayer.clear();
 		listLayer.reserve(header.song_layers);
@@ -336,7 +445,8 @@ do\
 		return true;
 	}
 
-	static bool ReadInstruments(const NBS_File::Header &header, NBS_File::ListInstrument &listInstrument, std::fstream &fileStream)
+	template<typename Stream>
+	static bool ReadInstruments(const NBS_File::Header &header, NBS_File::ListInstrument &listInstrument, Stream &tStream)
 	{
 		listInstrument.clear();
 
@@ -358,7 +468,18 @@ do\
 		return true;
 	}
 
-	static bool ReadNBSFile(std::filesystem::path path, NBS_File &fileNBS)
+	template<typename Stream>
+	requires(NBS_IO_Helper::InputStreamLike<Stream>)
+	static bool ReadNBS(NBS_File &fileNBS, Stream &tStream)
+	{
+		return
+			ReadHeader(fileNBS.header, tStream) &&
+			ReadNotes(fileNBS.header, fileNBS.listNote, tStream) &&
+			ReadLayers(fileNBS.header, fileNBS.listLayer, tStream) &&
+			ReadInstruments(fileNBS.header, fileNBS.listInstrument, tStream);
+	}
+
+	static bool ReadNBS(NBS_File &fileNBS, const std::filesystem::path &path)
 	{
 		std::fstream fRead(path, std::ios_base::in | std::ios_base::binary);
 		if (!fRead.is_open())
@@ -366,11 +487,12 @@ do\
 			return false;
 		}
 
+		InputStream fIptStream(fRead);
 		return
-			ReadHeader(fileNBS.header, fRead) &&
-			ReadNotes(fileNBS.header, fileNBS.listNote, fRead) &&
-			ReadLayers(fileNBS.header, fileNBS.listLayer, fRead) &&
-			ReadInstruments(fileNBS.header, fileNBS.listInstrument, fRead);
+			ReadHeader(fileNBS.header, fIptStream) &&
+			ReadNotes(fileNBS.header, fileNBS.listNote, fIptStream) &&
+			ReadLayers(fileNBS.header, fileNBS.listLayer, fIptStream) &&
+			ReadInstruments(fileNBS.header, fileNBS.listInstrument, fIptStream);
 	}
 
 #undef NORM_READ
@@ -379,18 +501,19 @@ do\
 
 public://WRITE
 #define NORM_WRITE(field)\
-FAIL_RETURN(WriteToStream((field), fileStream))
+FAIL_RETURN(WriteToStream((field), tStream))
 
 #define COND_WRITE(field,cond)\
 do\
 {\
 	if((cond))\
 	{\
-		FAIL_RETURN(WriteToStream((field), fileStream));\
+		FAIL_RETURN(WriteToStream((field), tStream));\
 	}\
 }while(false)
 
-	static bool WriteHeader(const NBS_File::Header &header, std::fstream &fileStream)
+	template<typename Stream>
+	static bool WriteHeader(const NBS_File::Header &header, Stream &tStream)
 	{
 		// 写入歌曲长度标记
 		if (header.version > 0)
@@ -438,8 +561,8 @@ do\
 		return true;
 	}
 
-
-	static bool WriteNotes(const NBS_File::Header &header, const NBS_File::ListNote &listNote, std::fstream &fileStream)
+	template<typename Stream>
+	static bool WriteNotes(const NBS_File::Header &header, const NBS_File::ListNote &listNote, Stream &tStream)
 	{
 		// 按tick排序音符，同tick按照layer排序
 		std::vector<NBS_File::Note> sortedNoteList = listNote;
@@ -497,7 +620,8 @@ do\
 		return true;
 	}
 
-	static bool WriteLayers(const NBS_File::Header &header, const NBS_File::ListLayer &listLayer, std::fstream &fileStream)
+	template<typename Stream>
+	static bool WriteLayers(const NBS_File::Header &header, const NBS_File::ListLayer &listLayer, Stream &tStream)
 	{
 		//写入层
 		for (const auto &layer : listLayer)
@@ -511,7 +635,8 @@ do\
 		return true;
 	}
 
-	static bool WriteInstruments(const NBS_File::Header &header, const NBS_File::ListInstrument &listInstrument, std::fstream &fileStream)
+	template<typename Stream>
+	static bool WriteInstruments(const NBS_File::Header &header, const NBS_File::ListInstrument &listInstrument, Stream &tStream)
 	{
 		//写入乐器数量
 		if (listInstrument.size() > UINT8_MAX)
@@ -532,7 +657,18 @@ do\
 		return true;
 	}
 
-	static bool WriteNBSFile(std::filesystem::path path, const NBS_File &fileNBS)
+	template<typename Stream>
+	requires(NBS_IO_Helper::OutputStreamLike<Stream>)
+	static bool WriteNBS(const NBS_File &fileNBS, Stream &tStream)
+	{
+		return
+			WriteHeader(fileNBS.header, tStream) &&
+			WriteNotes(fileNBS.header, fileNBS.listNote, tStream) &&
+			WriteLayers(fileNBS.header, fileNBS.listLayer, tStream) &&
+			WriteInstruments(fileNBS.header, fileNBS.listInstrument, tStream);
+	}
+
+	static bool WriteNBS(const NBS_File &fileNBS, const std::filesystem::path &path)
 	{
 		std::fstream fWrite(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 		if (!fWrite.is_open())
@@ -540,11 +676,12 @@ do\
 			return false;
 		}
 
+		OutputStream fOptStream(fWrite);
 		return
-			WriteHeader(fileNBS.header, fWrite) &&
-			WriteNotes(fileNBS.header, fileNBS.listNote, fWrite) &&
-			WriteLayers(fileNBS.header, fileNBS.listLayer, fWrite) &&
-			WriteInstruments(fileNBS.header, fileNBS.listInstrument, fWrite);
+			WriteHeader(fileNBS.header, fOptStream) &&
+			WriteNotes(fileNBS.header, fileNBS.listNote, fOptStream) &&
+			WriteLayers(fileNBS.header, fileNBS.listLayer, fOptStream) &&
+			WriteInstruments(fileNBS.header, fileNBS.listInstrument, fOptStream);
 	}
 
 #undef NORM_WRITE
