@@ -5,6 +5,18 @@ VisualStudioVersion = 16.0.37027.11
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NBS_CPP", "NBS_CPP\NBS_CPP.vcxproj", "{6E63A98F-8690-41FD-87C5-98E090B971F0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "include", "include", "{E876225E-3D8B-4CA4-A8E3-4B0B69135EE7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nbs_cpp", "nbs_cpp", "{04F313BB-4D59-4859-8EC3-E8606FEFC549}"
+	ProjectSection(SolutionItems) = preProject
+		include\nbs_cpp\NBS_All.hpp = include\nbs_cpp\NBS_All.hpp
+		include\nbs_cpp\NBS_Endian.hpp = include\nbs_cpp\NBS_Endian.hpp
+		include\nbs_cpp\NBS_File.hpp = include\nbs_cpp\NBS_File.hpp
+		include\nbs_cpp\NBS_IO.hpp = include\nbs_cpp\NBS_IO.hpp
+		include\nbs_cpp\NBS_Reader.hpp = include\nbs_cpp\NBS_Reader.hpp
+		include\nbs_cpp\NBS_Writer.hpp = include\nbs_cpp\NBS_Writer.hpp
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -24,6 +36,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{04F313BB-4D59-4859-8EC3-E8606FEFC549} = {E876225E-3D8B-4CA4-A8E3-4B0B69135EE7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DE165A06-B65D-4F64-AB05-50C313B184B4}
