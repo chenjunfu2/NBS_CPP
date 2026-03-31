@@ -17,7 +17,6 @@ void print(std::format_string<Args...> fmt, Args&&... args)
 	fwrite(output.data(), 1, output.size(), stdout);
 }
 
-
 void PrintHeaderInfo(const NBS_File::Header &header)
 {
 	print("========== Header Info ==========\n");
