@@ -211,6 +211,7 @@ public:
 			return !refStream.read((char *)pData, szSize).fail();
 		}
 	};
+	static_assert(NBS_IO_Helper::InputStreamLike<InputStream>);
 
 	class OutputStream
 	{
@@ -237,6 +238,7 @@ public:
 			return !refStream.write((const char *)pData, szSize).fail();
 		}
 	};
+	static_assert(NBS_IO_Helper::OutputStreamLike<OutputStream>);
 
 public:
 	template<typename T, typename Stream>
