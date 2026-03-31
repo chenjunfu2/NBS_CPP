@@ -306,7 +306,7 @@ public:
 		}
 
 		if (!tStream.AddReserve(u32Length) ||
-			tStream.PutRange(strData.data(), u32Length * sizeof(*strData.data())))
+			!tStream.PutRange(strData.data(), u32Length * sizeof(*strData.data())))
 		{
 			return false;
 		}

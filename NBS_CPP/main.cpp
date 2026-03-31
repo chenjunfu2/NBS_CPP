@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <stdlib.h>
 
 void PrintHeaderInfo(const NBS_File::Header &header)
 {
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
 	PrintLayersInfo(nbsFile.listLayer);
 	PrintInstrumentsInfo(nbsFile.listInstrument);
 
-	return 0;
+	system("pause");
 
 	// 构造输出文件路径
 	std::filesystem::path outputPath = inputPath;
