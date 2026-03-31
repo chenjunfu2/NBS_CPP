@@ -21,8 +21,8 @@ void print(std::format_string<Args...> fmt, Args&&... args)
 void PrintHeaderInfo(const NBS_File::Header &header)
 {
     print("========== Header Info ==========\n");
-    print("Version: {}\n", (int)header.version);
-    print("Default Instruments: {}\n", (int)header.default_instruments);
+    print("Version: {}\n", header.version);
+    print("Default Instruments: {}\n", header.default_instruments);
     print("Song Length (ticks): {}\n", header.song_length);
     print("Song Layers: {}\n", header.song_layers);
     print("Song Name: {}\n", header.song_name);
@@ -31,8 +31,8 @@ void PrintHeaderInfo(const NBS_File::Header &header)
     print("Description: {}\n", header.description);
     print("Tempo: {:.2f} ({}/100)\n", header.Get_tempo_ActualValue(), header.tempo);
     print("Auto Save: {}\n", (header.auto_save ? "Yes" : "No"));
-    print("Auto Save Duration: {} min\n", (int)header.auto_save_duration);
-    print("Time Signature: 4/{}\n", (int)header.time_signature);
+    print("Auto Save Duration: {} min\n", header.auto_save_duration);
+    print("Time Signature: 4/{}\n", header.time_signature);
     print("Minutes Spent: {}\n", header.minutes_spent);
     print("Left Clicks: {}\n", header.left_clicks);
     print("Right Clicks: {}\n", header.right_clicks);
@@ -40,7 +40,7 @@ void PrintHeaderInfo(const NBS_File::Header &header)
     print("Blocks Removed: {}\n", header.blocks_removed);
     print("Song Origin: {}\n", header.song_origin);
     print("Loop: {}\n", (header.loop ? "Yes" : "No"));
-    print("Max Loop Count: {}\n", (int)header.max_loop_count);
+    print("Max Loop Count: {}\n", header.max_loop_count);
     print("Loop Start: {}\n", header.loop_start);
     print("=================================\n");
 }
@@ -56,8 +56,8 @@ void PrintNotesInfo(const NBS_File::ListNote &notes)
     {
         const auto &note = notes[i];
         print("  Note {}: tick={}, layer={}, instrument={}, key={}, velocity={}, panning={}, pitch={}\n",
-            i + 1, note.tick, note.layer, (int)note.instrument, (int)note.key,
-            (int)note.velocity, (int)note.Get_panning_ActualValue(), note.pitch);
+            i + 1, note.tick, note.layer, note.instrument, note.key,
+            note.velocity, note.Get_panning_ActualValue(), note.pitch);
     }
 
     if (notes.size() > displayCount)
@@ -79,7 +79,7 @@ void PrintLayersInfo(const NBS_File::ListLayer &layers)
         const auto &layer = layers[i];
         print("  Layer {}: name=\"{}\", lock={}, volume={}, panning={}\n",
             layer.id, layer.name, (layer.lock ? "Yes" : "No"),
-            (int)layer.volume, (int)layer.Get_panning_ActualValue());
+            layer.volume, layer.Get_panning_ActualValue());
     }
 
     if (layers.size() > displayCount)
@@ -100,7 +100,7 @@ void PrintInstrumentsInfo(const NBS_File::ListInstrument &instruments)
     {
         const auto &instr = instruments[i];
         print("  Instrument {}: name=\"{}\", file=\"{}\", pitch={}, press_key={}\n",
-            instr.id, instr.name, instr.file, (int)instr.pitch, (instr.press_key ? "Yes" : "No"));
+            instr.id, instr.name, instr.file, instr.pitch, (instr.press_key ? "Yes" : "No"));
     }
 
     if (instruments.size() > displayCount)
