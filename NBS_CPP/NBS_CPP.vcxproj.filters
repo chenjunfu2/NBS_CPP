@@ -42,6 +42,12 @@
     <ClInclude Include="..\include\nbs_cpp\NBS_All.hpp">
       <Filter>头文件\nbs_cpp</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\nbs_cpp\NBS_Reader.hpp">
+      <Filter>头文件\nbs_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nbs_cpp\NBS_Writer.hpp">
+      <Filter>头文件\nbs_cpp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

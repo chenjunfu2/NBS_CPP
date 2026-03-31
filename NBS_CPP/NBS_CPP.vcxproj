@@ -154,6 +154,8 @@
     <ClInclude Include="..\include\nbs_cpp\NBS_File.hpp" />
     <ClInclude Include="..\include\nbs_cpp\NBS_IO.hpp" />
     <ClInclude Include="..\include\nbs_cpp\NBS_Endian.hpp" />
+    <ClInclude Include="..\include\nbs_cpp\NBS_Reader.hpp" />
+    <ClInclude Include="..\include\nbs_cpp\NBS_Writer.hpp" />
     <ClInclude Include="util\CodeTimer.hpp" />
     <ClInclude Include="util\CPP_Helper.h" />
     <ClInclude Include="util\MyAssert.hpp" />
