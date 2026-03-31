@@ -365,13 +365,4 @@ FodyWeavers.xsd
 # My
 *.litematic
 *.nbs
-*.txt
 **/other/
-
-# CMakeLists
-!CMakeLists.txt
-!**/CMakeLists.txt
-
-# clang-format
-!clang-format.txt
-!**/clang-format.txt
