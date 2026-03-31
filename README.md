@@ -1,2 +1,2 @@
 # NBS_CPP
-Note Block Studio (.nbs) file lib cpp  
+一个基于CPP20的NBS(Note Block Studio)库  
