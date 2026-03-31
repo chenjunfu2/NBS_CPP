@@ -30,10 +30,16 @@
     <ClInclude Include="util\CodeTimer.hpp">
       <Filter>头文件\util</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\nbs_cpp\NBS_CPP.hpp">
+    <ClInclude Include="..\include\nbs_cpp\NBS_IO.hpp">
       <Filter>头文件\nbs_cpp</Filter>
     </ClInclude>
     <ClInclude Include="..\include\nbs_cpp\NBS_Endian.hpp">
+      <Filter>头文件\nbs_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nbs_cpp\NBS_File.hpp">
+      <Filter>头文件\nbs_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nbs_cpp\NBT_All.hpp">
       <Filter>头文件\nbs_cpp</Filter>
     </ClInclude>
   </ItemGroup>

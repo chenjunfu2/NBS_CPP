@@ -28,10 +28,10 @@
 #define CJF2_NBS_CPP_COMPILER_NAME "Unknown"
 #endif
 
-class Endian_Helper
+class NBS_Endian
 {
-	Endian_Helper(void) = delete;
-	~Endian_Helper(void) = delete;
+	NBS_Endian(void) = delete;
+	~NBS_Endian(void) = delete;
 	
 private:
 	constexpr static bool IsLittleEndian(void) noexcept
