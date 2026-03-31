@@ -1,4 +1,4 @@
-﻿#include <nbs_cpp/NBS_CPP.hpp>
+﻿#include <nbs_cpp/NBS_All.hpp>
 
 #include <stdio.h>
 #include <format>
