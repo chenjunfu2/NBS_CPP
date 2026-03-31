@@ -37,17 +37,18 @@ public:
 	//extern type
 	using FLOAT = double;
 	using SBYTE = int8_t;
+	using LONG = uint64_t;
 
 public:
 	//备注，所有string都以cp1252编码
 	struct Header
 	{
 		//版本信息
-		BYTE version;					//NBS文件版本号（0-5，当前最新为5），决定后续字段的可用性
+		BYTE version;					//NBS文件版本号（0-5，当前最新为5）
 
 		//基础设置
-		BYTE default_instruments;		//version > 0：默认乐器数量（通常为16），仅在版本1及以上有效
-		SHORT song_length;				//version >= 3：歌曲总长度（最大tick值），仅在版本3及以上有效
+		BYTE default_instruments;		//version > 0：默认乐器数量（通常为16）
+		SHORT song_length;				//version >= 3：歌曲总长度（最大tick值）
 		SHORT song_layers;				//歌曲总层数
 
 		//歌曲元数据
@@ -64,18 +65,18 @@ public:
 
 		//统计信息
 		INT minutes_spent;				//编辑总耗时（分钟）
-		INT left_clicks;				//鼠标左键点击次数（用于统计）
-		INT right_clicks;				//鼠标右键点击次数（用于统计）
+		INT left_clicks;				//左键点击次数
+		INT right_clicks;				//右键点击次数
 		INT blocks_added;				//添加的方块总数
 		INT blocks_removed;				//移除的方块总数
 
 		//来源信息
-		std::string song_origin;		//歌曲来源标识（如"Noteblock Studio"等）
+		std::string song_origin;		//歌曲来源标识
 
 		//循环设置
 		BOOL loop;						//version >= 4：是否启用循环播放
-		BYTE max_loop_count;			//version >= 4：最大循环次数（0表示无限循环）
-		SHORT loop_start;				//version >= 4：循环起始位置（tick）
+		BYTE max_loop_count;			//version >= 4：最大循环次数
+		SHORT loop_start;				//version >= 4：循环起始位置
 
 	public:
 		FLOAT Get_tempo_ActualValue(void) const
@@ -92,7 +93,7 @@ public:
 	struct Note
 	{
 		//位置信息
-		SHORT tick;			//音符所在的 tick 位置
+		LONG tick;			//音符所在的 tick 绝对位置（写入时使用SHORT仅存储相对偏移）
 		SHORT layer;		//所属层索引
 
 		//音符参数
@@ -116,9 +117,9 @@ public:
 
 	struct Layer
 	{
-		SHORT id;			//层索引 (0-based)
+		SHORT id;			//层索引
 		std::string name;	//层名称
-		BOOL lock;			//是否锁定 (v4+)
+		BOOL lock;			//是否锁定（静音） (v4+)
 		BYTE volume;		//音量 (0-100)
 		BYTE panning;		//声像 (-100 到 100, 0为中央, 默认100)，使用的时候需-100获得实际值，存储时无符号需要+100
 
@@ -351,6 +352,12 @@ do\
 		NBS_File::BYTE version{};
 		COND_READ(version, song_length == 0, (NBS_File::BYTE)0);//读入版本号，如果是新版本，则song_length长度为标记值0
 
+		//版本太高，无法处理
+		if (version > NBS_File::CURRENT_NBS_VERSION)
+		{
+			return false;
+		}
+
 		//初始化文件头
 		header.version = version;
 
@@ -388,10 +395,10 @@ do\
 	{
 		listNote.clear();
 
-		NBS_File::INT cur_tick = -1;
+		NBS_File::LONG cur_tick = -1;
 		while (true)
 		{
-			NBS_File::SHORT tick{};
+			NBS_File::SHORT tick{};//读取使用相对偏移（SHORT）
 			NORM_READ(tick);
 			if (tick == 0)
 			{
@@ -399,7 +406,7 @@ do\
 			}
 			cur_tick += tick;
 
-			NBS_File::INT cur_layer = -1;
+			NBS_File::SHORT cur_layer = -1;
 			while (true)
 			{
 				NBS_File::SHORT layer{};
@@ -578,18 +585,18 @@ do\
 		
 		//遍历tick
 		size_t noteIndex = 0;
-		NBS_File::INT cur_tick = -1;
+		NBS_File::LONG cur_tick = -1;
 		while (noteIndex < szSortedNoteSize)
 		{
 			//获取当前音符的tick
-			NBS_File::INT tick = sortedNoteList[noteIndex].tick;
+			NBS_File::LONG tick = sortedNoteList[noteIndex].tick;
 
-			//写入tick偏移
+			//写入tick相对偏移（SHORT）
 			NORM_WRITE((NBS_File::SHORT)(tick - cur_tick));
 			cur_tick = tick;
 
 			//写入当前tick的所有音符作为一个layer层
-			NBS_File::INT cur_layer = -1;
+			NBS_File::SHORT cur_layer = -1;
 			do
 			{
 				const auto &note = sortedNoteList[noteIndex];
